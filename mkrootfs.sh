@@ -26,13 +26,15 @@ function search_file {
 }
 
 # parse command-line arguments
-while getopts ":b:c:kl" opt; do
+while getopts ":b:c:ki:l" opt; do
   case "$opt" in
     b) BUSYBOX="$OPTARG"
       ;;
     c) CROSS_NAME="$OPTARG"
       ;;
     k) KEEP_TMP="YES"
+      ;;
+    i) PACKETS+=("$OPTARG")
       ;;
     l) DIR_TMP="$PATH_ORIG/tmp"
       echo "Local tmp directory: $DIR_TMP"
@@ -91,8 +93,15 @@ if [[ -f $BUSYBOX ]]; then
   cd $PATH_ORIG
 fi
 
-# uncompress default minimal configuration #TODO
-tar -xvf etc.tar.xz -C $DIR_ROOT
+# Uncompress and install extra packets
+for packet in ${PACKETS[@]}; do
+  if [[ -f "$packet" ]]; then
+    tar -xvf $packet -C $DIR_ROOT
+  else
+    echo "Packet not found: $packet"
+  fi
+done
+
 # link init
 ln -s sbin/init $DIR_ROOT/init
 # compress and create the final image
