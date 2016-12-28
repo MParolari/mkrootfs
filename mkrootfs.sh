@@ -5,9 +5,9 @@ PATH_ORIG="$(pwd)" # current directory
 DIR_TMP="/tmp/mkrootfs"
 
 # default packets/versions
-# null value means default/autodetect
-#BUSYBOX="" # auto-detect
-#CROSS_NAME="" # no cross compiler
+# null or empty string means nothing to do
+BUSYBOX=""
+CROSS_NAME=""
 
 # get the extension of a filename
 function ext {
@@ -18,11 +18,6 @@ function ext {
   else # no dots, no extension
     echo ""
   fi
-}
-function search_file {
-  for name in $(ls -v $1 2>/dev/null); do
-    echo $name
-  done
 }
 
 # parse command-line arguments
@@ -42,15 +37,8 @@ while getopts ":b:c:ki:l" opt; do
     \?) echo "Invalid option -$OPTARG" >&2
       exit 1
       ;;
-    :)
-      # if some arguments are not mandatory....
-      case "$OPTARG" in
-        b) BUSYBOX=$(search_file *busybox*.tar*)
-          ;;
-        *) echo "Option -$OPTARG requires an argument" >&2
-          exit 1
-          ;;
-      esac
+    :) echo "Option -$OPTARG requires an argument" >&2
+      exit 1
       ;;
   esac
 done
