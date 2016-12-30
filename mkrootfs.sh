@@ -20,12 +20,49 @@ function ext {
   fi
 }
 
+# --help and --version output (it can be used by help2man)
+if [[ "$1" == "--help" ]]; then
+  PRG="$(basename $0)"
+  echo "\
+$PRG is a bash script for compile and create a rootfs for embedded systems.
+
+Usage: $PRG [OPTIONS]
+
+Options:
+  -b FILE     FILE is the tarball that contains busybox
+  -c CROSS    use CROSS as a standard GNU cross-compile toolchain
+  --help      show this help and exit
+  -i FILE     uncompress FILE in the rootfs
+  -k          do not delete temporary files
+  --version   output version information and exit
+
+Examples:
+  $PRG -b busybox-1.25.1.tar.bz2 -i packet.tar.xz     common usage
+  $PRG -c arm-unknown-linux-uclibc-                   specify the toolchain
+"
+  exit 0
+elif [[ "$1" == "--version" ]]; then
+  PRG="$(basename $0)"
+  echo "\
+$PRG 0.1a
+
+Copyright (C) 2016 MParolari.
+See README or LICENSE files.
+
+Written by MParolari <mparolari.dev@gmail.com>
+"
+  exit 0
+fi
+
 # parse command-line arguments
-while getopts ":b:c:ki:l" opt; do
+while getopts ":b:c:hki:lv" opt; do
   case "$opt" in
     b) BUSYBOX="$OPTARG"
       ;;
     c) CROSS_NAME="$OPTARG"
+      ;;
+    h) echo "please use '--help'"
+      exit 0
       ;;
     k) KEEP_TMP="YES"
       ;;
@@ -33,6 +70,9 @@ while getopts ":b:c:ki:l" opt; do
       ;;
     l) DIR_TMP="$PATH_ORIG/tmp"
       echo "Local tmp directory: $DIR_TMP"
+      ;;
+    v) echo "please use '--version'"
+      exit 0
       ;;
     \?) echo "Invalid option -$OPTARG" >&2
       exit 1
