@@ -36,6 +36,10 @@ A GNU cross-compile toolchain (gcc + binutils + libc) can be set with the '-c'
 option (see the examples below).
 
 Any tar archive can be extracted in the rootfs with the '-i' option.
+Instead, if a directory is specified with '-i', this script will try to
+compile the project inside running 'make install', assuming that the
+binaries will be installed in a subdir named '_install';
+a 'make clean' command is performed next, if '-k' isn't enable.
 
 Default tmp directory is '$DIR_TMP'; use option '-t' for set another path.
 
@@ -49,7 +53,7 @@ Options:
   -b FILE     FILE is the tarball that contains busybox
   -c CROSS    use CROSS as a standard GNU cross-compile toolchain
   --help      show this help and exit
-  -i FILE     uncompress FILE in the rootfs
+  -i PATH     PATH can be a tar archive or a directory project to be install
   -k          do not delete temporary files
   -t PATH     set 'PATH/build_mkrootfs' as the tmp directory
   --version   output version information and exit
@@ -134,17 +138,42 @@ if [[ -f $BUSYBOX ]]; then
   fi
   # make
   make $BUSYBOX_ARGS
-  # install
+  # installation will be done in root directory
   ln -s $DIR_ROOT _install
+  # make install
   make $BUSYBOX_ARGS install
+  # the clean of the generated files will be done not here
+  # but at the end of this script
   # return to the original directory
   cd $PATH_ORIG
 fi
 
 # Uncompress and install extra packets
 for packet in ${PACKETS[@]}; do
-  if [[ -f "$packet" ]]; then
+  if [[ -f "$packet" && "$packet" =~ ".tar" ]]; then
+    # extract the archive directly
     tar -xvf $packet -C $DIR_ROOT
+  elif [[ -d "$packet" ]]; then
+    # change the local directory
+    cd $packet
+    # installation will be done in root directory
+    ln -s $DIR_ROOT _install
+    PACKET_ARGS="" # arguments
+    # if a crosstool chain is given
+    if [[ $CROSS_NAME ]]; then
+      PACKET_ARGS="CC=${CROSS_NAME}gcc"
+    fi
+    # make install
+    make $PACKET_ARGS install
+    # clean or delete binary files (default)
+    if [[ !($KEEP_TMP) ]]; then
+      # remove the link (or it will be cleaned at the next step)
+      rm _install
+      # clean
+      make clean
+    fi
+    # return to the original directory
+    cd $PATH_ORIG
   else
     echo "Packet not found: $packet"
   fi
