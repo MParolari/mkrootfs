@@ -6,6 +6,8 @@ DIR_TMP="/tmp/mkrootfs"
 
 # default packets/versions
 # null or empty string means nothing to do
+# change these settings for enable a default value without specify them
+# in the command line every time.
 BUSYBOX=""
 CROSS_NAME=""
 
@@ -25,6 +27,21 @@ if [[ "$1" == "--help" ]]; then
   PRG="$(basename $0)"
   echo "\
 $PRG is a bash script for compile and create a rootfs for embedded systems.
+
+It can compile and install busybox (see '-b' option);
+if a file called 'busybox.config' is found in the current directory it will be
+used, otherwise a default configuration will be generated.
+
+A GNU cross-compile toolchain (gcc + binutils + libc) can be set with the '-c'
+option (see the examples below).
+
+Any tar archive can be extracted in the rootfs with the '-i' option.
+
+Default tmp directory is '/tmp/mkrootfs'.
+
+WARNING:
+This script should NOT be run with root privileges; it can require a large
+amount of space (depending of what you want install).
 
 Usage: $PRG [OPTIONS]
 
@@ -84,7 +101,7 @@ while getopts ":b:c:hki:lv" opt; do
 done
 
 # set usefull shortcuts/variables
-DIR_ROOT="$DIR_TMP/rootfs"
+DIR_ROOT="$DIR_TMP/rootfs" # in this directory we'll build the rootfs
 
 # create the root directory (and implicitly the tmp directory)
 mkdir -p $DIR_ROOT
@@ -96,6 +113,7 @@ if [[ -f $BUSYBOX ]]; then
   BUSYBOX_CONFIG="$PATH_ORIG/busybox.config"
   # busybox directory (will be created when extracting)
   DIR_BUSYBOX="$DIR_TMP/$(basename $BUSYBOX $(ext $BUSYBOX))"
+  # arguments for make
   BUSYBOX_ARGS=""
   if [[ $CROSS_NAME ]]; then
     BUSYBOX_ARGS="ARCH=${CROSS_NAME%%-*} CROSS_COMPILE=$CROSS_NAME"
@@ -136,8 +154,9 @@ ln -s sbin/init $DIR_ROOT/init
 cd $DIR_ROOT
 find . | cpio -o -H newc | gzip > "$PATH_ORIG/rootfs.img"
 
-# delete tmp files
+# delete tmp files (default)
 if [[ !($KEEP_TMP) ]]; then
+  # write permission for all files
   chmod -R +w $DIR_TMP
   rm -rf $DIR_TMP
   echo "Temporary files deleted"
