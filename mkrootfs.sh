@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# global default settings
-PATH_ORIG="$(pwd)" # current directory
-DIR_TMP="/tmp/mkrootfs"
+# Current working directory
+PATH_ORIG="$(pwd)"
 
-# default packets/versions
+# Default settings
 # null or empty string means nothing to do
 # change these settings for enable a default value without specify them
 # in the command line every time.
+DIR_TMP="/tmp/build_mkrootfs"
 BUSYBOX=""
 CROSS_NAME=""
 
@@ -37,7 +37,7 @@ option (see the examples below).
 
 Any tar archive can be extracted in the rootfs with the '-i' option.
 
-Default tmp directory is '/tmp/mkrootfs'.
+Default tmp directory is '$DIR_TMP'; use option '-t' for set another path.
 
 WARNING:
 This script should NOT be run with root privileges; it can require a large
@@ -51,6 +51,7 @@ Options:
   --help      show this help and exit
   -i FILE     uncompress FILE in the rootfs
   -k          do not delete temporary files
+  -t PATH     set 'PATH/build_mkrootfs' as the tmp directory
   --version   output version information and exit
 
 Examples:
@@ -72,7 +73,7 @@ Written by MParolari <mparolari.dev@gmail.com>
 fi
 
 # parse command-line arguments
-while getopts ":b:c:hki:lv" opt; do
+while getopts ":b:c:hi:kt:v" opt; do
   case "$opt" in
     b) BUSYBOX="$OPTARG"
       ;;
@@ -81,12 +82,11 @@ while getopts ":b:c:hki:lv" opt; do
     h) echo "please use '--help'"
       exit 0
       ;;
-    k) KEEP_TMP="YES"
-      ;;
     i) PACKETS+=("$OPTARG")
       ;;
-    l) DIR_TMP="$PATH_ORIG/tmp"
-      echo "Local tmp directory: $DIR_TMP"
+    k) KEEP_TMP="YES"
+      ;;
+    t) DIR_TMP="$OPTARG/build_mkrootfs"
       ;;
     v) echo "please use '--version'"
       exit 0
@@ -99,6 +99,8 @@ while getopts ":b:c:hki:lv" opt; do
       ;;
   esac
 done
+
+echo "Tmp directory: $DIR_TMP"
 
 # set usefull shortcuts/variables
 DIR_ROOT="$DIR_TMP/rootfs" # in this directory we'll build the rootfs
