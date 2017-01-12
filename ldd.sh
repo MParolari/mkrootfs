@@ -15,7 +15,7 @@ declare -r LD_LIBRARY_PATH=( "/lib" "/usr/lib" )
 # DIR_ROOT_LIB  # path of the 'sysroot'
 
 # Standard output language (or regex won't match the output of readelf)
-export LC_ALL=C
+declare -x LC_ALL=C
 
 if [ ! -d "${DIR_ROOT}" ]; then
   echo "Root directory '${DIR_ROOT}' is not a directory" >&2
@@ -80,10 +80,21 @@ while [[ -n ${FILES} ]] ; do
     
     # print if the library is found
     if [ -n "${FOUND}" ]; then
-      echo "${LIB} => ${FOUND}"
+      # for every reference (symlinks and itself) to that library
+      for REF in $(find -L "${DIR_ROOT_LIB}" -samefile "${DIR_ROOT_LIB}${FOUND}"); do
+        # path of the reference
+        PATH_REF="${REF#${DIR_ROOT_LIB}}"
+        # if the reference is already been printed, continue
+        if [[ ! " ${REF_LIST[@]} " =~ " ${PATH_REF} " ]]; then
+          # print the reference
+          echo "$(basename "$REF"):${PATH_REF}"
+          # append to the list (it won't be printed again)
+          REF_LIST+=( "${PATH_REF}" )
+        fi
+      done
       FILES+=( "${DIR_ROOT_LIB}${FOUND}" )
     else
-      echo "${LIB} not found"
+      echo "${LIB}:not_found"
     fi
   done
 done
