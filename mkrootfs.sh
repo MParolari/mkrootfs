@@ -77,7 +77,7 @@ Written by MParolari <mparolari.dev@gmail.com>
 fi
 
 # parse command-line arguments
-while getopts ":b:c:hi:kt:v" opt; do
+while getopts ":b:c:hi:kl:t:v" opt; do
   case "$opt" in
     b) BUSYBOX="$OPTARG"
       ;;
@@ -89,6 +89,8 @@ while getopts ":b:c:hi:kt:v" opt; do
     i) PACKETS+=("$OPTARG")
       ;;
     k) KEEP_TMP="YES"
+      ;;
+    l) LIBS+=("$OPTARG")
       ;;
     t) DIR_TMP="$OPTARG/build_mkrootfs"
       ;;
@@ -176,6 +178,57 @@ for packet in ${PACKETS[@]}; do
     cd $PATH_ORIG
   else
     echo "Packet not found: $packet"
+  fi
+done
+
+# Uncompress, analyze and install libraries
+for LIB in ${LIBS[@]} ; do
+  # if it's a tarball, extract it
+  if [[ -f "$LIB" && "$LIB" =~ ".tar" ]]; then
+    #TODO move 'sysroot_lib' definition
+    #TODO rename 'sysroot_lib' depending on the library name, in order to avoid conflict
+    mkdir -p "$DIR_TMP/sysroot_lib"
+    tar -xvf "$LIB" -C "$DIR_TMP/sysroot_lib"
+    # set the directory
+    LIB="$DIR_TMP/sysroot_lib"
+  fi
+  # if it's a valid directory
+  if [[ -d "$LIB" ]]; then
+    # export variables for ldd.sh
+    declare -x DIR_ROOT_LIB="$LIB"
+    declare -x DIR_ROOT="$DIR_ROOT" # TODO export at the first declaration
+    if [[ "$CROSS_NAME" ]]; then
+      declare -x CROSS_CHAIN="$CROSS_NAME" # TODO export at the first declaration
+    fi
+    # change local directory
+    cd "$DIR_ROOT_LIB"
+    for RET in $($PATH_ORIG/ldd.sh); do #TODO move definition
+      # pattern matching
+      if [[ "$RET" =~ (.*):(.*) ]]; then #TODO better regex?
+        # declare the captured value
+        declare VALUE="${BASH_REMATCH[2]:1}"
+        # if no errors
+        if [[ "$VALUE" && "$VALUE" != "not_found" ]]; then
+          # get the permissions from the source directory
+          declare DIR=$(dirname "$VALUE")
+          declare PERM=$(stat --format "%a" "$DIR")
+          mkdir -p "$DIR_ROOT/$DIR"
+          # enable the write permissions on the target/destination directory
+          chmod +w "$DIR_ROOT/$DIR"
+          #TODO check if we can symlink a directory directly and not each file
+          # copy without follow symlinks and with the full path
+          cp -P --parents "$VALUE" "$DIR_ROOT/"
+          # set the permission of the source directory to the target directory
+          chmod "$PERM" "$DIR_ROOT/$DIR"
+          unset DIR
+          unset PERM
+        fi
+        #TODO handle errors
+      fi
+    done
+    unset DIR_ROOT_LIB
+    # return to the original directory
+    cd "$PATH_ORIG"
   fi
 done
 
