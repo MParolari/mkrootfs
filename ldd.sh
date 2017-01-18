@@ -4,9 +4,9 @@
 # It uses sed, grep, find and readlink
 
 # where the executables files are in the rootfs
-declare -r EXE_PATH=( "/bin" "/sbin" "/usr/bin" "/usr/sbin" )
+declare -ar EXE_PATH=( "/bin" "/sbin" "/usr/bin" "/usr/sbin" )
 # where the libraries are in the rootfs
-declare -r LD_LIBRARY_PATH=( "/lib" "/usr/lib" )
+declare -ar LD_LIBRARY_PATH=( "/lib" "/usr/lib" )
 # NB: remember the root slash / at the beginning
 
 # This variables (strings) should be set by the caller of this script
@@ -16,6 +16,8 @@ declare -r LD_LIBRARY_PATH=( "/lib" "/usr/lib" )
 
 # Standard output language (or regex won't match the output of readelf)
 declare -x LC_ALL=C
+# Save original IFS
+declare -r OLD_IFS=$IFS
 
 if [ ! -d "${DIR_ROOT}" ]; then
   echo "Root directory '${DIR_ROOT}' is not a directory" >&2
@@ -28,22 +30,25 @@ fi
 
 # queue of files that can have dependencies
 declare -a FILES
+declare -i i
 
 # for all the search paths
 for DIR in "${EXE_PATH[@]}"; do
   # if the directory exists
   if [ -d "${DIR_ROOT}${DIR}" ]; then
-    # list alla the executables inside it
-    EXES=$( find "${DIR_ROOT}${DIR}" -mindepth 1 -maxdepth 1 )
-    # follow symlinks
-    EXES=$( readlink -f $EXES )
-    # for each executable
-    for EXE in ${EXES[@]} ; do
-      # append it if not already in
-      if [[ ! " ${FILES[@]} " =~ "${EXE}" ]]; then
-        FILES+=( "${EXE}" )
-      fi
+    # list all the executables inside it
+    IFS=$'\n'
+    for EXE in $( find "${DIR_ROOT}${DIR}" -mindepth 1 -maxdepth 1 ); do
+      # follow symlinks
+      EXE="$(readlink -f $EXE)"
+      # search for it in the list, if present: continue
+      for (( i = 0; i < ${#FILES[@]}; i++ )); do
+        [[ "$EXE" == "${FILES[$i]}" ]] && continue 2
+      done
+      # if not present, append it
+      FILES+=( "$EXE" )
     done
+    IFS=$OLD_IFS
   fi
 done
 
