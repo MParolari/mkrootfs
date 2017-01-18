@@ -22,26 +22,6 @@ function ext {
   fi
 }
 
-# get every directory in a given path, from '/' to the file (both excluded)
-function dirs {
-  local FULL="$1"
-  local -a DIV
-  local -i i
-  # read the full path and put every directory in an array
-  while [[ "$FULL" =~ "/" && "$FULL" != "/" ]]; do
-    FULL=$(dirname "$FULL")
-    DIV+=( "$FULL" )
-  done
-  # if it wasn't an absolute path, insert the last element
-  if [[ "$FULL" != "/" ]]; then
-    DIV+=( "$(dirname "$FULL")" )
-  fi
-  # print the reversed array, except for the first element '/' or '.'
-  for (( i = ${#DIV[@]} -2; i >= 0; i-- )); do
-    echo "${DIV[i]}"
-  done
-}
-
 # --help and --version output (it can be used by help2man)
 if [[ "$1" == "--help" ]]; then
   PRG="$(basename $0)"
@@ -229,13 +209,11 @@ for LIB in ${LIBS[@]} ; do
         declare VALUE="${BASH_REMATCH[2]:1}"
         # if no errors
         if [[ "$VALUE" && "$VALUE" != "not_found" ]]; then
-          #TODO if $VALUE contains some space, crash
           # check if it's possible copy a link to a directory
-          for SHORT in $(dirs "$VALUE"); do
-            if [[ -L "$SHORT" && -d "$SHORT" ]]; then
-              VALUE="$SHORT"
-              break
-            fi
+          declare FULL="$VALUE"
+          while [[ "$FULL" =~ "/" && "$FULL" != "/" ]]; do
+            FULL=$(dirname "$FULL")
+            [[ "$FULL" != "/" && -L "$FULL" && -d "$FULL" ]] && VALUE="$FULL"
           done
           # get the permissions from the source directory
           declare DIR=$(dirname "$VALUE")
