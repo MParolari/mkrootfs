@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This bash script is inspired by 'ldd' of crosstool-ng-1.22.0
-# It uses sed, grep, find and readlink
+# It uses find and readlink
 
 # where the executables files are in the rootfs
 declare -ar EXE_PATH=( "/bin" "/sbin" "/usr/bin" "/usr/sbin" )
@@ -56,11 +56,18 @@ done
 
 # until the queue is not empty
 for (( i = 0; i < ${#FILES[@]}; i++ )); do
-  # for any NEEDED library from readelf output
-  for LIB in $( "${CROSS_CHAIN}readelf" -d "${FILES[$i]}"                      \
-              | grep -E '\(NEEDED\)'                                           \
-              | sed -r -e 's/^.*Shared library:[[:space:]]+\[([^]]+)\].*/\1/;' \
-  ); do # TODO remove sed and grep dependencies
+  # parse readelf output
+  IFS=$'\n'
+  for LINE in $( "${CROSS_CHAIN}readelf" -d "${FILES[$i]}" ); do
+    # regex captures the NEEDED library name
+    if [[ "${LINE}" =~ \(NEEDED\).*Shared\ library:[[:space:]]+\[([^]]+)\] ]]; then
+      LIBS+=( "${BASH_REMATCH[1]}" ) # append it
+    fi
+  done
+  IFS=$OLD_IFS
+  
+  # for each NEEDED library
+  for LIB in "${LIBS[@]}"; do
     # if the library is already in the list, continue
     for (( j = 0; j < ${#NEEDED_LIST[@]}; j++ )); do
       [[ "${LIB}" == "${NEEDED_LIST[$j]}" ]] && continue 2
