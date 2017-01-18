@@ -30,7 +30,9 @@ fi
 
 # queue of files that can have dependencies
 declare -a FILES
+# integer variables for C-like for loop
 declare -i i
+declare -i j
 
 # for all the search paths
 for DIR in "${EXE_PATH[@]}"; do
@@ -53,27 +55,21 @@ for DIR in "${EXE_PATH[@]}"; do
 done
 
 # until the queue is not empty
-while [[ -n ${FILES} ]] ; do
-  # get the first element
-  FILE=${FILES[0]}
-  # pop it from the queue
-  FILES=(${FILES[@]:1})
-  
+for (( i = 0; i < ${#FILES[@]}; i++ )); do
   # for any NEEDED library from readelf output
-  for LIB in $( "${CROSS_CHAIN}readelf" -d "${FILE}"                           \
+  for LIB in $( "${CROSS_CHAIN}readelf" -d "${FILES[$i]}"                      \
               | grep -E '\(NEEDED\)'                                           \
               | sed -r -e 's/^.*Shared library:[[:space:]]+\[([^]]+)\].*/\1/;' \
   ); do # TODO remove sed and grep dependencies
-    # if the library is not already in the list
-    if [[ " ${NEEDED_LIST[@]} " =~ " ${LIB} " ]]; then
-      # NB: this condition works only if libraries names have not space ' '
-      continue
-    fi
+    # if the library is already in the list, continue
+    for (( j = 0; j < ${#NEEDED_LIST[@]}; j++ )); do
+      [[ "${LIB}" == "${NEEDED_LIST[$j]}" ]] && continue 2
+    done
     
     # append the library to the list
     NEEDED_LIST+=( "${LIB}" )
     
-    FOUND=""
+    declare FOUND=""
     # for all the search path
     for DIR in "${LD_LIBRARY_PATH[@]}"; do
       # if this library exists
@@ -86,17 +82,21 @@ while [[ -n ${FILES} ]] ; do
     # print if the library is found
     if [ -n "${FOUND}" ]; then
       # for every reference (symlinks and itself) to that library
+      IFS=$'\n'
       for REF in $(find -L "${DIR_ROOT_LIB}" -samefile "${DIR_ROOT_LIB}${FOUND}"); do
         # path of the reference
         PATH_REF="${REF#${DIR_ROOT_LIB}}"
-        # if the reference is already been printed, continue
-        if [[ ! " ${REF_LIST[@]} " =~ " ${PATH_REF} " ]]; then
-          # print the reference
-          echo "$(basename "$REF"):${PATH_REF}"
-          # append to the list (it won't be printed again)
-          REF_LIST+=( "${PATH_REF}" )
-        fi
+        # if the reference is already been found and printed, continue
+        for (( j = 0; j < ${#REF_LIST[@]}; j++ )); do
+          [[ "${PATH_REF}" == "${REF_LIST[$j]}" ]] && continue 2
+        done
+        # print the reference
+        echo "$(basename "$REF"):${PATH_REF}"
+        # append to the list (it won't be printed again)
+        REF_LIST+=( "${PATH_REF}" )
       done
+      IFS=$OLD_IFS
+      # append the library, it will be analyzed at next loop
       FILES+=( "${DIR_ROOT_LIB}${FOUND}" )
     else
       echo "${LIB}:not_found"
