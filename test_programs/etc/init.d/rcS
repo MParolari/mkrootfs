@@ -1,0 +1,34 @@
+#!/bin/ash
+
+# root is the owner of everything that already exists
+chown -R root:root /
+
+# Mount filesystems
+mkdir -p /proc
+mount -t proc proc /proc
+mkdir -p /sys
+mount -t sysfs sysfs /sys
+mkdir -p /dev/devpts
+mount -t devpts devpts /dev/pts
+
+# Set the hotplug program path name
+echo "/sbin/mdev" > /proc/sys/kernel/hotplug
+# Populate /dev
+mdev -s
+
+# Set hostname
+hostname EmbSys
+# Enable localhost
+ifconfig lo 127.0.0.1 up
+# ifconfig for Qemu
+ifconfig eth0 10.0.2.15 netmask 255.255.255.0
+route add default gw 10.0.2.1
+
+# Load keyboard layout if exists
+if [[ -f "/etc/host.kmap" ]]; then
+  loadkmap < /etc/host.kmap
+fi
+
+# create home directory for guest user
+mkdir -p /home/guest
+chown -R guest:guest /home/guest
