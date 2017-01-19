@@ -43,6 +43,15 @@ compile the project inside running 'make install', assuming that the
 binaries will be installed in a subdir named '_install';
 a 'make clean' command is performed next, if '-k' isn't enable.
 
+With the '-l' option you can indicate a directory (or a tarball archive)
+in which there's a library directory tree (the sysroot folder of your
+(cross-)compiler). This directory tree will be filtered and only the libraries
+required by the executables will be copied in the rootfs.
+This operation is performed by the auxiliary bash script $LDD_NAME
+(it must be in the same directory of $PRG).
+Warning: this *experimental* solution is not reliable and can not work
+automagically for all the executables.
+
 Default tmp directory is '$DIR_TMP'; use option '-t' for set another path.
 
 WARNING:
@@ -57,6 +66,7 @@ Options:
   --help      show this help and exit
   -i PATH     PATH can be a tar archive or a directory project to be install
   -k          do not delete temporary files
+  -l PATH     filter and install the library in PATH
   -t PATH     set 'PATH/build_mkrootfs' as the tmp directory
   --version   output version information and exit
 
