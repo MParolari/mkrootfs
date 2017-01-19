@@ -2,20 +2,22 @@
 
 # Current working directory
 PATH_ORIG="$(pwd)"
+# Auxiliary script for libraries filter
+declare -r LDD_NAME="ldd.sh"
 
 # Default settings
 # null or empty string means nothing to do
 # change these settings for enable a default value without specify them
 # in the command line every time.
-DIR_TMP="/tmp/build_mkrootfs"
-BUSYBOX=""
-CROSS_NAME=""
+declare DIR_TMP="/tmp/build_mkrootfs"
+declare BUSYBOX=""
+declare -x CROSS_CHAIN=""
 
 # get the extension of a filename
 function ext {
-  if [[ $1 =~ ".tar"  ]]; then # .tar.X extension
+  if [[ "$1" =~ ".tar"  ]]; then # .tar.X extension
     echo ".tar${1#*.tar}"
-  elif [[ $1 =~ "." ]]; then # "simple" extension detect
+  elif [[ "$1" =~ "." ]]; then # "simple" extension detect
     echo "${1##*.}"
   else # no dots, no extension
     echo ""
@@ -81,7 +83,7 @@ while getopts ":b:c:hi:kl:t:v" opt; do
   case "$opt" in
     b) BUSYBOX="$OPTARG"
       ;;
-    c) CROSS_NAME="$OPTARG"
+    c) CROSS_CHAIN="$OPTARG"
       ;;
     h) echo "please use '--help'"
       exit 0
@@ -108,107 +110,103 @@ done
 
 echo "Tmp directory: $DIR_TMP"
 
-# set usefull shortcuts/variables
-DIR_ROOT="$DIR_TMP/rootfs" # in this directory we'll build the rootfs
+# Set usefull shortcuts/variables
+# in this directory we'll build the rootfs
+declare -xr DIR_ROOT="$DIR_TMP/rootfs"
+# where the library directory tree we'll be uncompressed
+declare -r DIR_ROOT_LIB_BASE="$DIR_TMP/sysroot_lib"
 
 # create the root directory (and implicitly the tmp directory)
-mkdir -p $DIR_ROOT
+mkdir -p "$DIR_ROOT"
 
 # Busybox section
-if [[ -f $BUSYBOX ]]; then
+if [[ -f "$BUSYBOX" ]]; then
   echo "Enable busybox - $BUSYBOX"
   # busybox config file
-  BUSYBOX_CONFIG="$PATH_ORIG/busybox.config"
+  declare -r BUSYBOX_CONFIG="$PATH_ORIG/busybox.config"
   # busybox directory (will be created when extracting)
-  DIR_BUSYBOX="$DIR_TMP/$(basename $BUSYBOX $(ext $BUSYBOX))"
+  declare -r DIR_BUSYBOX="$DIR_TMP/$(basename "$BUSYBOX" $(ext "$BUSYBOX"))"
   # arguments for make
-  BUSYBOX_ARGS=""
-  if [[ $CROSS_NAME ]]; then
-    BUSYBOX_ARGS="ARCH=${CROSS_NAME%%-*} CROSS_COMPILE=$CROSS_NAME"
+  if [[ "$CROSS_CHAIN" ]]; then
+    declare -r BUSYBOX_ARGS="ARCH=${CROSS_CHAIN%%-*} CROSS_COMPILE=$CROSS_CHAIN"
   fi
   
   # extract the busybox archive
-  tar -xvf $BUSYBOX -C $(dirname $DIR_BUSYBOX)
+  tar -xvf "$BUSYBOX" -C $(dirname "$DIR_BUSYBOX")
   # change local directory
-  cd $DIR_BUSYBOX
+  cd "$DIR_BUSYBOX"
   # copy the local configuration if exists, otherwise use default configuration
-  if [[ -f $BUSYBOX_CONFIG ]]; then
-    cp $BUSYBOX_CONFIG .config
+  if [[ -f "$BUSYBOX_CONFIG" ]]; then
+    cp "$BUSYBOX_CONFIG" .config
     make $BUSYBOX_ARGS oldconfig
   else
     make $BUSYBOX_ARGS defconfig
   fi
   # make
-  make $BUSYBOX_ARGS
+  make $BUSYBOX_ARGS busybox
   # installation will be done in root directory
-  ln -s $DIR_ROOT _install
+  ln -s "$DIR_ROOT" _install
   # make install
   make $BUSYBOX_ARGS install
   # the clean of the generated files will be done not here
   # but at the end of this script
   # return to the original directory
-  cd $PATH_ORIG
+  cd "$PATH_ORIG"
 fi
 
 # Uncompress and install extra packets
-for packet in ${PACKETS[@]}; do
-  if [[ -f "$packet" && "$packet" =~ ".tar" ]]; then
+for PACKET in "${PACKETS[@]}"; do
+  if [[ -f "$PACKET" && "$PACKET" =~ ".tar" ]]; then
     # extract the archive directly
-    tar -xvf $packet -C $DIR_ROOT
-  elif [[ -d "$packet" ]]; then
+    tar -xvf "$PACKET" -C "$DIR_ROOT"
+  elif [[ -d "$PACKET" ]]; then
     # change the local directory
-    cd $packet
+    cd "$PACKET"
     # installation will be done in root directory
-    ln -s $DIR_ROOT _install
-    PACKET_ARGS="" # arguments
+    ln -s "$DIR_ROOT" _install
     # if a crosstool chain is given
-    if [[ $CROSS_NAME ]]; then
-      PACKET_ARGS="CC=${CROSS_NAME}gcc"
+    if [[ "$CROSS_CHAIN" ]]; then
+      declare PACKET_ARGS="CC=${CROSS_CHAIN}gcc"
     fi
     # make install
     make $PACKET_ARGS install
     # clean or delete binary files (default)
-    if [[ !($KEEP_TMP) ]]; then
+    if [[ ! "$KEEP_TMP" ]]; then
       # remove the link (or it will be cleaned at the next step)
       rm _install
       # clean
       make clean
     fi
     # return to the original directory
-    cd $PATH_ORIG
+    cd "$PATH_ORIG"
   else
-    echo "Packet not found: $packet"
+    echo "Packet not found: $PACKET"
   fi
 done
 
 # Uncompress, analyze and install libraries
-for LIB in ${LIBS[@]} ; do
+for LIB in "${LIBS[@]}"; do
   # if it's a tarball, extract it
   if [[ -f "$LIB" && "$LIB" =~ ".tar" ]]; then
-    #TODO move 'sysroot_lib' definition
     #TODO rename 'sysroot_lib' depending on the library name, in order to avoid conflict
-    mkdir -p "$DIR_TMP/sysroot_lib"
-    tar -xvf "$LIB" -C "$DIR_TMP/sysroot_lib"
+    mkdir -p "$DIR_ROOT_LIB_BASE"
+    tar -xvf "$LIB" -C "$DIR_ROOT_LIB_BASE"
     # set the directory
-    LIB="$DIR_TMP/sysroot_lib"
+    LIB="$DIR_ROOT_LIB_BASE"
   fi
   # if it's a valid directory
   if [[ -d "$LIB" ]]; then
     # export variables for ldd.sh
     declare -x DIR_ROOT_LIB="$LIB"
-    declare -x DIR_ROOT="$DIR_ROOT" # TODO export at the first declaration
-    if [[ "$CROSS_NAME" ]]; then
-      declare -x CROSS_CHAIN="$CROSS_NAME" # TODO export at the first declaration
-    fi
     # change local directory
     cd "$DIR_ROOT_LIB"
-    for RET in $($PATH_ORIG/ldd.sh); do #TODO move definition
+    for RET in $("$PATH_ORIG/$LDD_NAME"); do
       # pattern matching
       if [[ "$RET" =~ (.*):(.*) ]]; then #TODO better regex?
         # declare the captured value
         declare VALUE="${BASH_REMATCH[2]:1}"
         # if no errors
-        if [[ "$VALUE" && "$VALUE" != "not_found" ]]; then
+        if [[ "$VALUE" && "$VALUE" != "not_found" ]]; then #TODO 'ot_found'
           # check if it's possible copy a link to a directory
           declare FULL="$VALUE"
           while [[ "$FULL" =~ "/" && "$FULL" != "/" ]]; do
@@ -238,16 +236,16 @@ for LIB in ${LIBS[@]} ; do
 done
 
 # link init
-ln -s sbin/init $DIR_ROOT/init
+ln -s sbin/init "$DIR_ROOT/init"
 # compress and create the final image
-cd $DIR_ROOT
+cd "$DIR_ROOT"
 find . | cpio -o -H newc | gzip > "$PATH_ORIG/rootfs.img"
 
 # delete tmp files (default)
-if [[ !($KEEP_TMP) ]]; then
+if [[ ! "$KEEP_TMP" ]]; then
   # write permission for all files
-  chmod -R +w $DIR_TMP
-  rm -rf $DIR_TMP
+  chmod -R +w "$DIR_TMP"
+  rm -rf "$DIR_TMP"
   echo "Temporary files deleted"
 fi
 
