@@ -121,6 +121,7 @@ done
 echo "Tmp directory: $DIR_TMP"
 
 # Set usefull shortcuts/variables
+declare -r OLD_IFS=$IFS
 # in this directory we'll build the rootfs
 declare -xr DIR_ROOT="$DIR_TMP/rootfs"
 # where the library directory tree we'll be uncompressed
@@ -210,35 +211,59 @@ for LIB in "${LIBS[@]}"; do
     declare -x DIR_ROOT_LIB="$LIB"
     # change local directory
     cd "$DIR_ROOT_LIB"
-    for RET in $("$PATH_ORIG/$LDD_NAME"); do
-      # pattern matching
-      if [[ "$RET" =~ (.*):(.*) ]]; then #TODO better regex?
+    # run the auxiliary script and get its output
+    IFS=$'\n'
+    for LINE in $("$PATH_ORIG/$LDD_NAME"); do
+      LINES+=( "$LINE" )
+    done
+    IFS=$OLD_IFS
+    # for each line
+    for LINE in "${LINES[@]}"; do
+      # regex matching
+      if [[ "$LINE" =~ (.*):(.*) ]]; then #TODO better regex?
         # declare the captured value
-        declare VALUE="${BASH_REMATCH[2]:1}"
-        # if no errors
-        if [[ "$VALUE" && "$VALUE" != "not_found" ]]; then #TODO 'ot_found'
+        declare REF="${BASH_REMATCH[2]}"
+        # if the reference is valid
+        if [[ "$REF" && "$REF" != "not_found" ]]; then
+          # first character is the initial '/', not needed
+          REF=${REF:1}
           # check if it's possible copy a link to a directory
-          declare FULL="$VALUE"
+          declare FULL="$REF"
           while [[ "$FULL" =~ "/" && "$FULL" != "/" ]]; do
             FULL=$(dirname "$FULL")
-            [[ "$FULL" != "/" && -L "$FULL" && -d "$FULL" ]] && VALUE="$FULL"
+            # if it's not '/', but a link and a directory, update the reference
+            [[ "$FULL" != "/" && -L "$FULL" && -d "$FULL" ]] && REF="$FULL"
           done
           # get the permissions from the source directory
-          declare DIR=$(dirname "$VALUE")
+          declare DIR=$(dirname "$REF")
           declare PERM=$(stat --format "%a" "$DIR")
           mkdir -p "$DIR_ROOT/$DIR"
           # enable the write permissions on the target/destination directory
           chmod +w "$DIR_ROOT/$DIR"
           # copy without follow symlinks and with the full path
-          cp -P --parents "$VALUE" "$DIR_ROOT/"
+          cp -P --parents "$REF" "$DIR_ROOT/"
           # set the permission of the source directory to the target directory
           chmod "$PERM" "$DIR_ROOT/$DIR"
           unset DIR
           unset PERM
+        elif [[ "$REF" == "not_found" ]]; then
+          # the library is not been found, but this is not a critical error
+          echo "Library '${BASH_REMATCH[1]}' not found in $LIB"
+        else
+          # here something very wrong happened
+          echo "Something went wrong in parsing $LDD_NAME output; line:" >&2
+          echo "$LINE" >&2
+          exit 1
         fi
-        #TODO handle errors
+      else
+        # if the regex failed, we've got a problem
+        echo "Regex matching failed in parsing $LDD_NAME output; line:" >&2
+        echo "$LINE" >&2
+        exit 1
       fi
     done
+    unset LINE
+    unset LINES
     unset DIR_ROOT_LIB
     # return to the original directory
     cd "$PATH_ORIG"
