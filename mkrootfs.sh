@@ -195,15 +195,19 @@ for PACKET in "${PACKETS[@]}"; do
   fi
 done
 
-# Uncompress, analyze and install libraries
+# simple counter
+declare -i COUNTER=0
+# Decompress, analyze and install libraries
 for LIB in "${LIBS[@]}"; do
   # if it's a tarball, extract it
   if [[ -f "$LIB" && "$LIB" =~ ".tar" ]]; then
-    #TODO rename 'sysroot_lib' depending on the library name, in order to avoid conflict
-    mkdir -p "$DIR_ROOT_LIB_BASE"
-    tar -xvf "$LIB" -C "$DIR_ROOT_LIB_BASE"
+    # each tarball is decompressed in a different directory,
+    # named *_COUNTER, in order to avoid conflict
+    (( COUNTER++ ))
+    mkdir -p "${DIR_ROOT_LIB_BASE}_$COUNTER"
+    tar -xvf "$LIB" -C "${DIR_ROOT_LIB_BASE}_$COUNTER"
     # set the directory
-    LIB="$DIR_ROOT_LIB_BASE"
+    LIB="${DIR_ROOT_LIB_BASE}_$COUNTER"
   fi
   # if it's a valid directory
   if [[ -d "$LIB" ]]; then
