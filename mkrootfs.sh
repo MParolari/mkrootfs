@@ -13,17 +13,6 @@ declare DIR_TMP="/tmp/build_mkrootfs"
 declare BUSYBOX=""
 declare -x CROSS_CHAIN=""
 
-# get the extension of a filename
-function ext {
-  if [[ "$1" =~ ".tar"  ]]; then # .tar.X extension
-    echo ".tar${1#*.tar}"
-  elif [[ "$1" =~ "." ]]; then # "simple" extension detect
-    echo "${1##*.}"
-  else # no dots, no extension
-    echo ""
-  fi
-}
-
 # --help and --version output (it can be used by help2man)
 if [[ "$1" == "--help" ]]; then
   PRG="$(basename $0)"
@@ -135,15 +124,16 @@ if [[ -f "$BUSYBOX" ]]; then
   echo "Enable busybox - $BUSYBOX"
   # busybox config file
   declare -r BUSYBOX_CONFIG="$PATH_ORIG/busybox.config"
-  # busybox directory (will be created when extracting)
-  declare -r DIR_BUSYBOX="$DIR_TMP/$(basename "$BUSYBOX" $(ext "$BUSYBOX"))"
+  # busybox directory
+  declare -r DIR_BUSYBOX="$DIR_TMP/busybox"
+  mkdir -p "$DIR_BUSYBOX"
   # arguments for make
   if [[ "$CROSS_CHAIN" ]]; then
     declare -r BUSYBOX_ARGS="ARCH=${CROSS_CHAIN%%-*} CROSS_COMPILE=$CROSS_CHAIN"
   fi
   
   # extract the busybox archive
-  tar -xvf "$BUSYBOX" -C $(dirname "$DIR_BUSYBOX")
+  tar -xvf "$BUSYBOX" -C "$DIR_BUSYBOX" --strip-components 1
   # change local directory
   cd "$DIR_BUSYBOX"
   # copy the local configuration if exists, otherwise use default configuration
