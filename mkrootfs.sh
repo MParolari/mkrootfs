@@ -26,10 +26,12 @@ used, otherwise a default configuration will be generated.
 A GNU cross-compile toolchain (gcc + binutils + libc) can be set with the '-c'
 option (see the examples below).
 
-Any tar archive can be extracted in the rootfs with the '-i' option.
-Instead, if a directory is specified with '-i', this script will try to
+Any tarball, directory or file can be extracted/copied in the rootfs directly
+with the '-i' option.
+
+If a directory is specified with the option '-p', this script will try to
 compile the project inside running 'make install', assuming that the
-binaries will be installed in a subdir named '_install';
+PREFIX parameter is accepted;
 a 'make clean' command is performed next, if '-k' isn't enable.
 
 With the '-l' option you can indicate a directory (or a tarball archive)
@@ -53,9 +55,10 @@ Options:
   -b FILE     FILE is the tarball that contains busybox
   -c CROSS    use CROSS as a standard GNU cross-compile toolchain
   --help      show this help and exit
-  -i PATH     PATH can be a tar archive or a directory project to be install
+  -i PATH     PATH can be a tarball, a directory or a file to be install
   -k          do not delete temporary files
   -l PATH     filter and install the library in PATH
+  -p PATH     PATH can be a directory to a project to be compiled
   -t PATH     set 'PATH/build_mkrootfs' as the tmp directory
   --version   output version information and exit
 
@@ -78,7 +81,7 @@ Written by MParolari <mparolari.dev@gmail.com>
 fi
 
 # parse command-line arguments
-while getopts ":b:c:hi:kl:t:v" opt; do
+while getopts ":b:c:hi:kl:p:t:v" opt; do
   case "$opt" in
     b) BUSYBOX="$OPTARG"
       ;;
@@ -92,6 +95,8 @@ while getopts ":b:c:hi:kl:t:v" opt; do
     k) KEEP_TMP="YES"
       ;;
     l) LIBS+=("$OPTARG")
+      ;;
+    p) PROJECTS+=("$OPTARG")
       ;;
     t) DIR_TMP="$OPTARG/build_mkrootfs"
       ;;
@@ -173,22 +178,20 @@ if [[ -f "$BUSYBOX" ]]; then
   cd "$PATH_ORIG"
 fi
 
-# Uncompress and install extra packets
-for PACKET in "${PACKETS[@]}"; do
-  if [[ -f "$PACKET" && "$PACKET" =~ ".tar" ]]; then
-    # extract the archive directly
-    tar -xvf "$PACKET" -C "$DIR_ROOT"
-  elif [[ -d "$PACKET" ]]; then
+# Compile and install extra project
+for PROJECT in "${PROJECTS[@]}"; do
+  if [[ -d "$PROJECT" ]]; then
     # change the local directory
-    cd "$PACKET"
-    # installation will be done in root directory
+    cd "$PROJECT"
+    # set installation directory and link it to the rootfs directory
+    declare PROJECT_ARGS="PREFIX=_install"
     ln -s "$DIR_ROOT" _install
     # if a crosstool chain is given
     if [[ "$CROSS_CHAIN" ]]; then
-      declare PACKET_ARGS="CC=${CROSS_CHAIN}gcc"
+      PROJECT_ARGS="$PROJECT_ARGS CC=${CROSS_CHAIN}gcc"
     fi
     # make install
-    make $PACKET_ARGS install
+    make $PROJECT_ARGS install
     # clean or delete binary files (default)
     if [[ ! "$KEEP_TMP" ]]; then
       # remove the link (or it will be cleaned at the next step)
@@ -198,6 +201,19 @@ for PACKET in "${PACKETS[@]}"; do
     fi
     # return to the original directory
     cd "$PATH_ORIG"
+  else
+    echo "Project not found: $PROJECT"
+  fi
+done
+
+# Decompress and/or install extra packets
+for PACKET in "${PACKETS[@]}"; do
+  if [[ -f "$PACKET" && "$PACKET" =~ ".tar" ]]; then
+    # extract the archive directly
+    tar -xvf "$PACKET" -C "$DIR_ROOT"
+  elif [[ -d "$PACKET" || -f "$PACKET" ]]; then
+    # copy recursively
+    cp -R -P "$PACKET" "$DIR_ROOT"
   else
     echo "Packet not found: $PACKET"
   fi
