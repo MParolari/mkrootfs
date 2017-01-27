@@ -126,6 +126,14 @@ function clean_tmp {
   fi
 }
 
+# handler function for SIGINT signal
+function SIGINT_handler {
+  clean_tmp
+  exit 0
+}
+# bind signal handler
+trap SIGINT_handler SIGINT
+
 # create the root directory (and implicitly the tmp directory)
 mkdir -p "$DIR_ROOT"
 
