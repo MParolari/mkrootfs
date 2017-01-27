@@ -116,6 +116,16 @@ declare -xr DIR_ROOT="$DIR_TMP/rootfs"
 # where the library directory tree we'll be uncompressed
 declare -r DIR_ROOT_LIB_BASE="$DIR_TMP/sysroot_lib"
 
+# this function by default delete temporary the directory
+function clean_tmp {
+  if [[ ! "$KEEP_TMP" ]]; then
+    # write permission for all files
+    chmod -R +w "$DIR_TMP"
+    rm -rf "$DIR_TMP"
+    echo "Temporary files deleted"
+  fi
+}
+
 # create the root directory (and implicitly the tmp directory)
 mkdir -p "$DIR_ROOT"
 
@@ -247,12 +257,14 @@ for LIB in "${LIBS[@]}"; do
           # here something very wrong happened
           echo "Something went wrong in parsing $LDD_NAME output; line:" >&2
           echo "$LINE" >&2
+          clean_tmp
           exit 1
         fi
       else
         # if the regex failed, we've got a problem
         echo "Regex matching failed in parsing $LDD_NAME output; line:" >&2
         echo "$LINE" >&2
+        clean_tmp
         exit 1
       fi
     done
@@ -270,12 +282,7 @@ ln -s sbin/init "$DIR_ROOT/init"
 cd "$DIR_ROOT"
 find . | cpio -o -H newc | gzip > "$PATH_ORIG/rootfs.img"
 
-# delete tmp files (default)
-if [[ ! "$KEEP_TMP" ]]; then
-  # write permission for all files
-  chmod -R +w "$DIR_TMP"
-  rm -rf "$DIR_TMP"
-  echo "Temporary files deleted"
-fi
+# delete temporary files
+clean_tmp
 
 exit 0
