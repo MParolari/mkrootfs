@@ -8,7 +8,7 @@ mkdir -p /proc
 mount -t proc proc /proc
 mkdir -p /sys
 mount -t sysfs sysfs /sys
-mkdir -p /dev/devpts
+mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 
 # Set the hotplug program path name
