@@ -229,6 +229,12 @@ for PACKET in "${PACKETS[@]}"; do
   fi
 done
 
+# check $LDD_NAME
+if [[ ${#LIBS[@]} != 0 && ! -f "$PATH_ORIG/$LDD_NAME" ]]; then
+  echo "Error: $LDD_NAME required but not found in $PATH_ORIG" >&2
+  clean_tmp
+  exit 1
+fi
 # simple counter
 declare -i COUNTER=0
 # Decompress, analyze and install libraries
