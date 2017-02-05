@@ -10,8 +10,12 @@ declare -r LDD_NAME="ldd.sh"
 # change these settings for enable a default value without specify them
 # in the command line every time.
 declare DIR_TMP="/tmp/build_mkrootfs"
-declare BUSYBOX=""
-declare -x CROSS_CHAIN=""
+declare KEEP_TMP
+declare BUSYBOX
+declare -x CROSS_CHAIN
+declare -a PACKETS
+declare -a LIBS
+declare -a PROJECTS
 
 # --help and --version output (it can be used by help2man)
 if [[ "$1" == "--help" ]]; then
