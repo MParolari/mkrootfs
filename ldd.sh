@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This bash script is inspired by 'ldd' of crosstool-ng-1.22.0
-# It uses find and readlink
+# It uses find, readlink, basename and readelf
 
 # where the executables files are in the rootfs
 declare -ar EXE_PATH=( "/bin" "/sbin" "/usr/bin" "/usr/sbin" )

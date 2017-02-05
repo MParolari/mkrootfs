@@ -43,11 +43,13 @@ in which there's a library directory tree (the sysroot folder of your
 (cross-)compiler). This directory tree will be filtered and only the libraries
 required by the executables will be copied in the rootfs.
 This operation is performed by the auxiliary bash script $LDD_NAME
-(it must be in the same directory of $PRG).
+(it must be in the current working directory).
 Warning: this *experimental* solution is not reliable and can not work
 automagically for all the executables.
 
 Default tmp directory is '$DIR_TMP'; use option '-t' for set another path.
+
+If you want to stop the script while running, Ctrl+C (SigInt) should be enough.
 
 WARNING:
 This script should NOT be run with root privileges; it can require a large
@@ -74,9 +76,9 @@ Examples:
 elif [[ "$1" == "--version" ]]; then
   PRG="$(basename $0)"
   echo "\
-$PRG 0.1a
+$PRG 1.0b
 
-Copyright (C) 2016 MParolari.
+Copyright (C) 2016-17 MParolari.
 See README or LICENSE files.
 
 Written by MParolari <mparolari.dev@gmail.com>
@@ -122,7 +124,7 @@ echo "Tmp directory: $DIR_TMP"
 declare -r OLD_IFS=$IFS
 # in this directory we'll build the rootfs
 declare -xr DIR_ROOT="$DIR_TMP/rootfs"
-# where the library directory tree we'll be uncompressed
+# where the library directory tree we'll be decompressed
 declare -r DIR_ROOT_LIB_BASE="$DIR_TMP/sysroot_lib"
 
 # this function by default delete temporary the directory
