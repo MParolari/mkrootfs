@@ -22,6 +22,8 @@ An auxiliary script *ldd.sh* is attached, required for the "libraries filter" op
 * All the dependencies of what you want compile/install (typically a compiler or a complete GNU toolchain)
 
 ## TODO
+* delete tmp file/directory asap
+* deallocate variables
 * default etc/
   * some init script require some busybox component (eg `mdev`) that can be not included
 * ~~do not re-compile or build what you have already built successfully before~~
@@ -42,7 +44,7 @@ An auxiliary script *ldd.sh* is attached, required for the "libraries filter" op
   * [x] arm + linux + uclibc-ng
   * [x] arm + linux + libc
   * [ ] x86_64 + linux + libc
-  * [ ] mips + linux + uclibc-ng
+  * [x] mips + linux + uclibc-ng
 
 Original assignment:
 > Write a set of shell scripts allowing to create a ramfs or initrd for embedded systems. The scripts must not have external dependencies and must support cross-compilation (optional: allow to build the cross-compiler). The inclusion of custom programs, kernel modules, or boot scripts in the image must be supported. The shell script must be non-interactive (controlled through command-line parameters. Use "getopt" to parse them). The size of the initramfs must be reduced to the minimum. The resulting image must be able to run in Qemu.
