@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Current working directory
-PATH_ORIG="$(pwd)"
+PATH_ORIG="$PWD"
 # Auxiliary script for libraries filter
 declare -r LDD_NAME="ldd.sh"
 
@@ -142,6 +142,12 @@ function SIGINT_handler {
 }
 # bind signal handler
 trap SIGINT_handler SIGINT
+
+# check if current directory is set
+if [[ ! "$PATH_ORIG" ]]; then
+  echo "Error: current directory not found" >&2
+  exit 1
+fi
 
 # create the root directory (and implicitly the tmp directory)
 mkdir -p "$DIR_ROOT"
