@@ -316,8 +316,6 @@ for LIB in "${LIBS[@]}"; do
   fi
 done
 
-# link init
-ln -s sbin/init "$DIR_ROOT/init"
 # compress and create the final image
 cd "$DIR_ROOT"
 find . | cpio -o -H newc | gzip > "$PATH_ORIG/rootfs.img"
