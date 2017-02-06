@@ -6,7 +6,7 @@ This is a project for the [RTOS course](http://disi.unitn.it/~abeni/RTOS/) (look
 ## Usage
 Run the script with '--help' option for more details about options and usage; an equivalent manpage should be provided (*mkrootfs.1*).
 
-The *donwload_tools.sh* script is a simple way for downloading some tools like busybox.
+The *Makefile* contains some usefull commands or shortcuts, run 'make help' for more details; for example 'make download' is a simple way for downloading some tools like Busybox.
 
 The *etc.tar.xz* archive contains a minimal configuration for a rootfs; between test programs, there's an etc directory for experiments and customizations.
 
