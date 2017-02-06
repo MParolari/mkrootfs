@@ -24,7 +24,6 @@ An auxiliary script *ldd.sh* is attached, required for the "libraries filter" op
 * All the dependencies of what you want compile/install (typically a compiler or a complete GNU toolchain)
 
 ## TODO
-* delete tmp file/directory asap
 * deallocate variables
 * default etc/
   * some init script require some busybox component (eg `mdev`) that can be not included

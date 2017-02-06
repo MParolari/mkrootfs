@@ -184,10 +184,13 @@ if [[ -f "$BUSYBOX" ]]; then
   ln -s "$DIR_ROOT" _install
   # make install
   make $BUSYBOX_ARGS install
-  # the clean of the generated files will be done not here
-  # but at the end of this script
   # return to the original directory
   cd "$PATH_ORIG"
+  # the clean of the generated files will be done not here
+  if [[ ! "$KEEP_TMP" ]]; then
+    rm "$DIR_BUSYBOX/_install"
+    rm -rf "$DIR_BUSYBOX"
+  fi
 fi
 
 # Compile and install extra project
@@ -241,6 +244,8 @@ fi
 declare -i COUNTER=0
 # Decompress, analyze and install libraries
 for LIB in "${LIBS[@]}"; do
+  # export variables for ldd.sh
+  declare -x DIR_ROOT_LIB="$LIB"
   # if it's a tarball, extract it
   if [[ -f "$LIB" && "$LIB" =~ ".tar" ]]; then
     # each tarball is decompressed in a different directory,
@@ -249,12 +254,10 @@ for LIB in "${LIBS[@]}"; do
     mkdir -p "${DIR_ROOT_LIB_BASE}_$COUNTER"
     tar -xvf "$LIB" -C "${DIR_ROOT_LIB_BASE}_$COUNTER"
     # set the directory
-    LIB="${DIR_ROOT_LIB_BASE}_$COUNTER"
+    DIR_ROOT_LIB="${DIR_ROOT_LIB_BASE}_$COUNTER"
   fi
   # if it's a valid directory
-  if [[ -d "$LIB" ]]; then
-    # export variables for ldd.sh
-    declare -x DIR_ROOT_LIB="$LIB"
+  if [[ -d "$DIR_ROOT_LIB" ]]; then
     # change local directory
     cd "$DIR_ROOT_LIB"
     # run the auxiliary script and get its output
@@ -312,10 +315,16 @@ for LIB in "${LIBS[@]}"; do
     done
     unset LINE
     unset LINES
-    unset DIR_ROOT_LIB
     # return to the original directory
     cd "$PATH_ORIG"
   fi
+  # clean temporary directory (if $LIB is a tarball, we decompressed it before)
+  if [[ ! "$KEEP_TMP" && -f "$LIB" && "$LIB" =~ ".tar" ]]; then
+    # write permission for all files
+    chmod -R +w "$DIR_ROOT_LIB"
+    rm -rf "$DIR_ROOT_LIB"
+  fi
+  unset DIR_ROOT_LIB
 done
 
 # compress and create the final image
