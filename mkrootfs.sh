@@ -76,7 +76,7 @@ Examples:
 elif [[ "$1" == "--version" ]]; then
   PRG="$(basename $0)"
   echo "\
-$PRG 1.0b
+$PRG 1.0
 
 Copyright (C) 2016-17 MParolari.
 See README or LICENSE files.
