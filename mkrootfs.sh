@@ -217,7 +217,7 @@ for PROJECT in "${PROJECTS[@]}"; do
     # return to the original directory
     cd "$PATH_ORIG"
   else
-    echo "Project not found: $PROJECT"
+    echo "Project not found: $PROJECT" >&2
   fi
 done
 
@@ -230,7 +230,7 @@ for PACKET in "${PACKETS[@]}"; do
     # copy recursively
     cp -R -P "$PACKET" "$DIR_ROOT"
   else
-    echo "Packet not found: $PACKET"
+    echo "Packet not found: $PACKET" >&2
   fi
 done
 
