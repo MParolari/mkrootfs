@@ -246,6 +246,10 @@ declare -i COUNTER=0
 for LIB in "${LIBS[@]}"; do
   # export variables for ldd.sh
   declare -x DIR_ROOT_LIB="$LIB"
+  # if it's a relative path, make it absolute
+  [[ "$DIR_ROOT_LIB" != /* ]] && DIR_ROOT_LIB="$PATH_ORIG/$DIR_ROOT_LIB"
+  # remove the trailing slash (if exists)
+  [[ "$DIR_ROOT_LIB" == */ ]] && DIR_ROOT_LIB="${DIR_ROOT_LIB::-1}"
   # if it's a tarball, extract it
   if [[ -f "$LIB" && "$LIB" =~ ".tar" ]]; then
     # each tarball is decompressed in a different directory,
