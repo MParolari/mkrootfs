@@ -17,7 +17,7 @@ An auxiliary script *ldd.sh* is attached, required for the "libraries filter" op
 ### Requirements
 * Shell bash 4.3.30 or greater
 * Some standard/classic Linux utilities: `cp`, `rm`, `ln`, `mkdir`, `chmod`, `dirname`, `basename`
-* Other tools: `tar`, `stat`, `find`, `cpio`, `gzip`
+* Other tools: `tar`, `find`, `cpio`, `gzip`
 * If you want to compile something, typically you need `make`
 * For *ldd.sh*: `find`, `readlink`, `basename`
 * Some space on your disk (it depends on what you want install)

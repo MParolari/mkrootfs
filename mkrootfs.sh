@@ -287,18 +287,10 @@ for LIB in "${LIBS[@]}"; do
             # if it's not '/', but a link and a directory, update the reference
             [[ "$FULL" != "/" && -L "$FULL" && -d "$FULL" ]] && REF="$FULL"
           done
-          # get the permissions from the source directory
-          declare DIR=$(dirname "$REF")
-          declare PERM=$(stat --format "%a" "$DIR")
-          mkdir -p "$DIR_ROOT/$DIR"
-          # enable the write permissions on the target/destination directory
-          chmod +w "$DIR_ROOT/$DIR"
+          # create new subdirectories with 755 permissions
+          mkdir -p "$DIR_ROOT/$(dirname "$REF")"
           # copy without follow symlinks and with the full path
           cp -P --parents "$REF" "$DIR_ROOT/"
-          # set the permission of the source directory to the target directory
-          chmod "$PERM" "$DIR_ROOT/$DIR"
-          unset DIR
-          unset PERM
         elif [[ "$REF" == "not_found" ]]; then
           # the library is not been found, but this is not a critical error
           echo "Library '${BASH_REMATCH[1]}' not found in $LIB"
