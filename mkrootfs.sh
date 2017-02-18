@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Current working directory
-PATH_ORIG="$PWD"
+declare -r PATH_ORIG="$PWD"
 # Auxiliary script for libraries filter
 declare -r LDD_NAME="ldd.sh"
 
@@ -283,7 +283,7 @@ for LIB in "${LIBS[@]}"; do
           # check if it's possible copy a link to a directory
           declare FULL="$REF"
           while [[ "$FULL" =~ "/" && "$FULL" != "/" ]]; do
-            FULL=$(dirname "$FULL")
+            FULL="$(dirname "$FULL")"
             # if it's not '/', but a link and a directory, update the reference
             [[ "$FULL" != "/" && -L "$FULL" && -d "$FULL" ]] && REF="$FULL"
           done
