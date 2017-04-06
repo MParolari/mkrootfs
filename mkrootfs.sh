@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# mkrootfs.sh is a bash script for compile and create a rootfs for embedded systems.
+# Copyright (C) 2016-17  MParolari <mparolari.dev@gmail.com>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 # Current working directory
 declare -r PATH_ORIG="$PWD"
 # Auxiliary script for libraries filter
@@ -76,10 +92,13 @@ Examples:
 elif [[ "$1" == "--version" ]]; then
   PRG="$(basename $0)"
   echo "\
-$PRG 1.0
+$PRG 1.0.1
 
 Copyright (C) 2016-17 MParolari.
-See README or LICENSE files.
+
+This program comes with ABSOLUTELY NO WARRANTY.
+This is free software, and you are welcome to redistribute it
+under certain conditions. See README or LICENSE files for details.
 
 Written by MParolari <mparolari.dev@gmail.com>
 "
